@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kemas Kini ID Murid | ClassTrack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: white;
+      font-family: 'Inter', sans-serif;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="glass w-full max-w-md">
+    <h1 class="text-xl font-bold mb-4 text-center">🔄 Kemas Kini ID Murid</h1>
+    <p class="text-sm text-gray-300 mb-4 text-center">
+      Menukar ID dokumen dari <code>nama</code> ke <code>nama_kelas</code>
+    </p>
+    <button onclick="migrateStudentIds()" class="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded font-medium">
+      Mula Kemas Kini
+    </button>
+    <p id="status" class="mt-4 text-sm text-center text-gray-300"></p>
+    <div class="mt-6 text-center">
+      <button onclick="window.location.href='teacher-dashboard.html'" class="text-sm text-cyan-300 hover:underline">
+        ← Kembali ke Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyDozc46BtKOvWfBMcujmAYO89xA1q36a2E",
+        authDomain: "classmanagement-d0085.firebaseapp.com",
+        projectId: "classmanagement-d0085",
+        storageBucket: "classmanagement-d0085.firebasestorage.app",
+        messagingSenderId: "1088302691324",
+        appId: "1:1088302691324:web:8f983e4090f231fdc93879",
+        measurementId: "G-JCPNXLX0T3"
+      });
+    }
+
+    const db = firebase.firestore();
+    const statusEl = document.getElementById('status');
+
+    async function migrateStudentIds() {
+      statusEl.textContent = "Mengambil senarai murid...";
+      console.log("Mula kemas kini ID murid...");
+
+      try {
+        const snapshot = await db.collection('students').get();
+        if (snapshot.empty) {
+          statusEl.textContent = "Tiada murid dijumpai.";
+          return;
+        }
+
+        let updated = 0;
+        let skipped = 0;
+
+        for (const doc of snapshot.docs) {
+          const oldId = doc.id;
+          const data = doc.data();
+
+          // Lompaskan jika ID sudah mengandungi kelas (contoh: ada '_6_cemerlang')
+          if (oldId.includes('_') && oldId.split('_').length > 1) {
+            // Semak jika ID dah dalam format baharu
+            // Contoh: jika class = "6 CEMERLANG", ID sepatutnya berakhir dengan '6_cemerlang'
+            const expectedSuffix = data.class.toLowerCase().replace(/\s+/g, '_');
+            if (oldId.endsWith(expectedSuffix)) {
+              console.log("Langkau (sudah dikemas kini):", oldId);
+              skipped++;
+              continue;
+            }
+          }
+
+          // Cipta ID baharu
+          const namePart = data.name.toLowerCase().replace(/\s+/g, '_');
+          const classPart = data.class.toLowerCase().replace(/\s+/g, '_');
+          const newId = `${namePart}_${classPart}`;
+
+          if (oldId === newId) {
+            console.log("Langkau (ID sama):", oldId);
+            skipped++;
+            continue;
+          }
+
+          // Cipta dokumen baharu
+          console.log(`Menukar: ${oldId} → ${newId}`);
+          await db.collection('students').doc(newId).set(data);
+
+          // Padam dokumen lama
+          await db.collection('students').doc(oldId).delete();
+
+          updated++;
+          statusEl.innerHTML = `Berjaya: ${updated} | Dilangkau: ${skipped}`;
+        }
+
+        statusEl.innerHTML = `
+          ✔️ Kemas kini selesai!<br>
+          Dikemas kini: ${updated} | Dilangkau: ${skipped}
+        `;
+        console.log("Kemas kini selesai.");
+
+      } catch (err) {
+        console.error("Ralat:", err);
+        statusEl.innerHTML = `<span class="text-red-400">Ralat: ${err.message}</span>`;
+      }
+    }
+  </script>
+</body>
+</html>

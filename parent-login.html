@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Masuk Ibu Bapa | DidikLink</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: white;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="glass w-full max-w-md p-8 shadow-2xl border-t border-white/20 relative">
+    
+    <button onclick="goBack()" class="absolute top-6 left-6 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-cyan-400 transition flex items-center gap-1 outline-none">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+      </svg>
+      Kembali
+    </button>
+
+    <div class="text-center mb-8 mt-4">
+      <img src="didiklink.png" alt="DidikLink Logo" class="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">
+      <h1 class="text-3xl font-black tracking-tighter">
+        <span class="text-white">DIDIK</span><span class="text-cyan-400">LINK</span>
+      </h1>
+      <p class="text-gray-400 text-xs mt-2 uppercase tracking-widest font-semibold">Akses Ibu Bapa / Penjaga</p>
+    </div>
+
+    <div class="space-y-6">
+      <div>
+        <label class="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-bold">Kod Akses Anak</label>
+        <input type="text" id="accessCode" placeholder="Masukkan kod unik murid" 
+               class="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-4 text-center text-xl font-mono tracking-widest text-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all uppercase">
+      </div>
+
+      <button onclick="login()" id="loginBtn" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+        <span id="btnText">Semak Rekod</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </button>
+
+      <p class="text-[10px] text-center text-gray-500 uppercase tracking-tighter leading-relaxed">
+        Sila hubungi guru kelas jika anda tidak mempunyai atau terlupa kod akses anak anda.
+      </p>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <script>
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDozc46BtKOvWfBMcujmAYO89xA1q36a2E",
+      authDomain: "classmanagement-d0085.firebaseapp.com",
+      projectId: "classmanagement-d0085",
+      storageBucket: "classmanagement-d0085.firebasestorage.app",
+      messagingSenderId: "1088302691324",
+      appId: "1:1088302691324:web:8f983e4090f231fdc93879"
+    };
+    
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    /**
+     * Fungsi untuk membersihkan sesi dan kembali ke index.html
+     * Ini mengelakkan auto-redirect semula ke dashboard.
+     */
+    function goBack() {
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('parentStudentId');
+      auth.signOut().then(() => {
+        window.location.href = 'index.html';
+      }).catch(() => {
+        window.location.href = 'index.html';
+      });
+    }
+
+    /**
+     * Fungsi Log Masuk
+     */
+    async function login() {
+      const codeInput = document.getElementById('accessCode');
+      const btn = document.getElementById('loginBtn');
+      const btnText = document.getElementById('btnText');
+      
+      const code = codeInput.value.trim().toLowerCase();
+
+      if (!code) {
+        alert("Sila masukkan kod akses anak anda.");
+        return;
+      }
+
+      // Maklum balas visual butang
+      btn.disabled = true;
+      btnText.textContent = "Menyemak...";
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        // Log masuk secara anonymous ke Firebase Auth
+        await auth.signInAnonymously();
+
+        // Cari data murid di Firestore
+        const snapshot = await db.collection('students')
+                                .where('accessCode', '==', code)
+                                .get();
+
+        if (snapshot.empty) {
+            alert("Kod akses tidak sah. Sila pastikan kod adalah betul.");
+            resetButton();
+        } else {
+            const studentId = snapshot.docs[0].id;
+            
+            // Simpan sesi
+            localStorage.setItem('parentStudentId', studentId);
+            localStorage.setItem('userRole', 'parent');
+            
+            // Pergi ke dashboard
+            window.location.href = 'parent-dashboard.html';
+        }
+      } catch (err) {
+        console.error("Ralat log masuk:", err);
+        alert("Ralat sistem: " + err.message);
+        resetButton();
+      }
+    }
+
+    function resetButton() {
+      const btn = document.getElementById('loginBtn');
+      const btnText = document.getElementById('btnText');
+      btn.disabled = false;
+      btnText.textContent = "Semak Rekod";
+      btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    // Benarkan tekan 'Enter' untuk hantar kod
+    document.getElementById('accessCode').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            login();
+        }
+    });
+  </script>
+</body>
+</html>

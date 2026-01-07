@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profil Murid | ClassTrack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      color: white;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+    }
+    /* Warna Neon Asal */
+    .neon-green { text-shadow: 0 0 8px #0ff, 0 0 16px #0ff; }
+    .neon-yellow { text-shadow: 0 0 8px #ff0, 0 0 16px #ff0; }
+    .neon-cyan { text-shadow: 0 0 8px #0ff, 0 0 16px #0ff; }
+    .neon-purple { text-shadow: 0 0 8px #d400ff, 0 0 16px #d400ff; }
+    
+    .tab-active {
+      color: white;
+      border-bottom: 2px solid #0ff;
+    }
+
+    /* Penggayaan Grid Kehadiran Baru */
+    .status-none { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+    .status-hadir { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); border: none; }
+    .status-sakit { background: #f59e0b; border: none; }
+    .status-lewat { background: #6366f1; border: none; }
+    .status-tanpa_maklum { background: #ef4444; border: none; }
+    
+    .grid-day {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .grid-day:active { transform: scale(0.9); }
+  </style>
+</head>
+<body class="p-3 md:p-4">
+  <div class="max-w-3xl mx-auto">
+    <div class="flex justify-between items-center mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
+      <div class="flex items-center gap-3">
+        <img src="didiklink.png" alt="Logo" class="w-10 h-10">
+        <div>
+          <h1 id="studentName" class="text-xl font-bold leading-none">Memuatkan...</h1>
+          <p id="studentClass" class="text-cyan-300 text-xs mt-1">Kelas: --</p>
+        </div>
+      </div>
+      <button onclick="window.location.href='teacher-dashboard.html'" class="text-[10px] font-bold uppercase tracking-widest bg-gray-700/50 hover:bg-gray-600 px-4 py-2 rounded-lg transition border border-white/10">
+        ← Kembali
+      </button>
+    </div>
+
+    <div class="flex border-b border-gray-700 mb-5 overflow-x-auto whitespace-nowrap">
+      <button class="tab-btn py-2 px-4 font-medium text-gray-300" data-tab="exams">📝 Ujian</button>
+      <button class="tab-btn py-2 px-4 font-medium text-gray-300" data-tab="discipline">⚖️ Disiplin</button>
+      <button class="tab-btn py-2 px-4 font-medium text-gray-300" data-tab="achievements">🏆 Pencapaian</button>
+      <button class="tab-btn py-2 px-4 font-medium text-gray-300" data-tab="attendance">📅 Kehadiran</button>
+    </div>
+
+    <div id="tabContent" class="space-y-5">
+      </div>
+  </div>
+
+  <template id="examsTab">
+    <div>
+      <h2 class="font-bold text-lg neon-green mb-3">Rekod Ujian</h2>
+      <div class="glass p-3 mb-4">
+        <form id="examsForm" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs mb-1">Subjek</label>
+              <input type="text" name="subject" placeholder="BM, MT..." class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+            </div>
+            <div>
+              <label class="block text-xs mb-1">Jenis</label>
+              <input type="text" name="type" placeholder="UH1, PAT..." class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs mb-1">Tarikh</label>
+              <input type="date" name="date" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+            </div>
+            <div>
+              <label class="block text-xs mb-1">Markah</label>
+              <input type="number" name="score" placeholder="85" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+            </div>
+            <div>
+              <label class="block text-xs mb-1">Jumlah</label>
+              <input type="number" name="total" value="100" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+            </div>
+          </div>
+          <button type="submit" class="w-full bg-green-600 py-1.5 rounded text-sm font-medium">+ Tambah Ujian</button>
+        </form>
+      </div>
+      <div id="examsList" class="space-y-2 text-sm">
+        <p class="text-gray-400">Tiada rekod ujian.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="disciplineTab">
+    <div>
+      <h2 class="font-bold text-lg neon-yellow mb-3">Rekod Disiplin</h2>
+      <div class="glass p-3 mb-4">
+        <form id="disciplineForm" class="space-y-3">
+          <div>
+            <label class="block text-xs mb-1">Jenis</label>
+            <select name="type" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+              <option value="good">Amalan Baik</option>
+              <option value="warning">Salah Laku</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Tarikh</label>
+            <input type="date" name="date" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Catatan</label>
+            <textarea name="note" placeholder="Contoh: Membantu kelas kemas bilik" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" rows="2" required></textarea>
+          </div>
+          <button type="submit" class="w-full bg-yellow-600 py-1.5 rounded text-sm font-medium">+ Tambah Rekod</button>
+        </form>
+      </div>
+      <div id="disciplineList" class="space-y-2 text-sm">
+        <p class="text-gray-400">Tiada rekod disiplin.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="achievementsTab">
+    <div>
+      <h2 class="font-bold text-lg neon-cyan mb-3">Pencapaian Luar Akademik</h2>
+      <div class="glass p-3 mb-4">
+        <form id="achievementsForm" class="space-y-3">
+          <div>
+            <label class="block text-xs mb-1">Tarikh</label>
+            <input type="date" name="date" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Acara</label>
+            <input type="text" name="event" placeholder="Pertandingan Lukisan Negeri" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Pencapaian</label>
+            <input type="text" name="award" placeholder="Johan" class="w-full bg-gray-800 px-2 py-1 rounded text-sm" required>
+          </div>
+          <button type="submit" class="w-full bg-cyan-600 py-1.5 rounded text-sm font-medium">+ Tambah Pencapaian</button>
+        </form>
+      </div>
+      <div id="achievementsList" class="space-y-2 text-sm">
+        <p class="text-gray-400">Tiada pencapaian.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="attendanceTab">
+    <div>
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="font-bold text-lg neon-purple">Rekod Kehadiran</h2>
+        <div class="flex gap-2">
+          <select id="monthSelect" class="bg-gray-800 text-[10px] px-2 py-1 rounded border border-gray-700 outline-none">
+            <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mac</option>
+            <option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option>
+            <option value="6">Jul</option><option value="7">Ogos</option><option value="8">Sep</option>
+            <option value="9">Okt</option><option value="10">Nov</option><option value="11">Dis</option>
+          </select>
+          <select id="yearSelect" class="bg-gray-800 text-[10px] px-2 py-1 rounded border border-gray-700 outline-none">
+            <option value="2025">2025</option><option value="2026" selected>2026</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="glass p-4 mb-4">
+        <p class="text-[10px] text-gray-400 mb-3 text-center italic">Klik pada tarikh untuk kitar status: Hadir → Sakit → Lewat → Tanpa Maklum → Padam</p>
+        <div id="attendanceGrid" class="grid grid-cols-7 gap-2">
+          </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 text-[9px] uppercase font-bold opacity-70">
+        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></span> Hadir</div>
+        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-amber-500 rounded-sm"></span> Sakit</div>
+        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-indigo-500 rounded-sm"></span> Lewat</div>
+        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-red-500 rounded-sm"></span> Tanpa Maklum</div>
+      </div>
+    </div>
+  </template>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Inisialisasi Firebase mengikut konfigurasi asal
+    if (!firebase.apps.length) {
+      console.log("Initializing Firebase...");
+      firebase.initializeApp({
+        apiKey: "AIzaSyDozc46BtKOvWfBMcujmAYO89xA1q36a2E",
+        authDomain: "classmanagement-d0085.firebaseapp.com",
+        projectId: "classmanagement-d0085",
+        storageBucket: "classmanagement-d0085.firebasestorage.app",
+        messagingSenderId: "1088302691324",
+        appId: "1:1088302691324:web:8f983e4090f231fdc93879",
+        measurementId: "G-JCPNXLX0T3"
+      });
+    }
+
+    const db = firebase.firestore();
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentId = urlParams.get('id');
+
+    if (!studentId) {
+      alert("Tiada ID murid diberikan!");
+      window.location.href = 'teacher-dashboard.html';
+    }
+
+    let currentStudent = null;
+
+    // Muatkan data murid (Logik asal kekal)
+    async function loadStudent() {
+      try {
+        console.log("Memuatkan data murid dengan ID:", studentId);
+        const doc = await db.collection('students').doc(studentId).get();
+        if (!doc.exists) {
+          alert("Murid tidak dijumpai!");
+          window.location.href = 'teacher-dashboard.html';
+          return;
+        }
+        currentStudent = doc.data();
+        document.getElementById('studentName').textContent = currentStudent.name;
+        document.getElementById('studentClass').textContent = `Kelas: ${currentStudent.class}`;
+        showTab('exams'); // Tab default
+      } catch (err) {
+        console.error("Ralat muat murid:", err);
+      }
+    }
+
+    // Fungsi Paparan Tab (Telah disepadukan dengan Grid Kehadiran)
+    function showTab(tabName) {
+      console.log("Tukar tab ke:", tabName);
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('tab-active');
+          btn.classList.remove('text-gray-300');
+        } else {
+          btn.classList.remove('tab-active');
+          btn.classList.add('text-gray-300');
+        }
+      });
+
+      const content = document.getElementById('tabContent');
+      const template = document.getElementById(tabName + 'Tab');
+      content.innerHTML = template.innerHTML;
+
+      if (tabName === 'attendance') {
+        initAttendanceGrid();
+      } else {
+        loadTabData(tabName);
+        attachFormListener(tabName);
+      }
+    }
+
+    // Memuatkan data untuk Ujian, Disiplin & Pencapaian (Kod asal kekal)
+    async function loadTabData(tabName) {
+      const listEl = document.getElementById(tabName + 'List');
+      try {
+        const snapshot = await db.collection('students').doc(studentId).collection(tabName).orderBy('date', 'desc').get();
+        if (snapshot.empty) {
+          listEl.innerHTML = `<p class="text-gray-400">Tiada rekod ${tabName}.</p>`;
+          return;
+        }
+
+        let html = '';
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          if (tabName === 'exams') {
+            const perc = ((d.score / d.total) * 100).toFixed(1);
+            html += `<div class="glass p-2 text-xs">📌 ${d.subject} • ${d.type}<br>${d.date} • ${d.score}/${d.total} (${perc}%)</div>`;
+          } else if (tabName === 'discipline') {
+            const icon = d.type === 'good' ? '✅' : '⚠️';
+            const color = d.type === 'good' ? 'text-green-300' : 'text-red-300';
+            html += `<div class="glass p-2 text-xs ${color}">${icon} ${d.note}<br>${d.date}</div>`;
+          } else if (tabName === 'achievements') {
+            html += `<div class="glass p-2 text-xs">🏅 ${d.award}<br>${d.event} • ${d.date}</div>`;
+          }
+        });
+        listEl.innerHTML = html;
+      } catch (err) {
+        console.error(`Ralat muatkan ${tabName}:`, err);
+      }
+    }
+
+    // Event listener untuk borang (Ujian, Disiplin, Pencapaian)
+    function attachFormListener(tabName) {
+      const form = document.getElementById(tabName + 'Form');
+      if (!form) return;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = {};
+        for (let [key, value] of formData.entries()) { data[key] = value; }
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+
+        try {
+          await db.collection('students').doc(studentId).collection(tabName).add(data);
+          alert(`Rekod ${tabName} disimpan!`);
+          form.reset();
+          loadTabData(tabName);
+        } catch (err) {
+          alert('Ralat: ' + err.message);
+        }
+      });
+    }
+
+    // --- LOGIK BARU: GRID KEHADIRAN ---
+    
+    function initAttendanceGrid() {
+      const mSel = document.getElementById('monthSelect');
+      const ySel = document.getElementById('yearSelect');
+      const today = new Date();
+      
+      mSel.value = today.getMonth();
+      ySel.value = today.getFullYear();
+
+      mSel.onchange = ySel.onchange = () => renderAttendanceGrid();
+      renderAttendanceGrid();
+    }
+
+    async function renderAttendanceGrid() {
+      const grid = document.getElementById('attendanceGrid');
+      const month = parseInt(document.getElementById('monthSelect').value);
+      const year = parseInt(document.getElementById('yearSelect').value);
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const monthStr = (month + 1).toString().padStart(2, '0');
+
+      grid.innerHTML = '<p class="col-span-7 text-center text-[10px] py-5 opacity-50">Memuatkan data...</p>';
+
+      try {
+        const snapshot = await db.collection('students').doc(studentId).collection('attendance')
+          .where('date', '>=', `${year}-${monthStr}-01`)
+          .where('date', '<=', `${year}-${monthStr}-${daysInMonth}`)
+          .get();
+
+        const attRecords = {};
+        snapshot.forEach(doc => {
+          attRecords[doc.data().date] = { id: doc.id, status: doc.data().status };
+        });
+
+        grid.innerHTML = '';
+        for (let i = 1; i <= daysInMonth; i++) {
+          const dateStr = `${year}-${monthStr}-${i.toString().padStart(2, '0')}`;
+          const record = attRecords[dateStr];
+          const status = record ? record.status : 'none';
+
+          const dayBtn = document.createElement('button');
+          dayBtn.className = `grid-day status-${status}`;
+          dayBtn.innerText = i;
+          dayBtn.onclick = () => toggleAttendance(dateStr, status, record ? record.id : null);
+          grid.appendChild(dayBtn);
+        }
+      } catch (err) {
+        grid.innerHTML = `<p class="col-span-7 text-red-400 text-xs">Ralat: ${err.message}</p>`;
+      }
+    }
+
+    async function toggleAttendance(date, currentStatus, docId) {
+      // Kitaran status mengikut pilihan asal: hadir, sakit, tanpa_maklum, lewat
+      const statuses = ['none', 'hadir', 'sakit', 'lewat', 'tanpa_maklum'];
+      const nextStatus = statuses[(statuses.indexOf(currentStatus) + 1) % statuses.length];
+      const ref = db.collection('students').doc(studentId).collection('attendance');
+
+      try {
+        if (nextStatus === 'none') {
+          if (docId) await ref.doc(docId).delete();
+        } else {
+          if (docId) {
+            await ref.doc(docId).update({ status: nextStatus });
+          } else {
+            await ref.add({ date, status: nextStatus, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+          }
+        }
+        renderAttendanceGrid();
+      } catch (err) {
+        console.error("Gagal kemaskini kehadiran:", err);
+      }
+    }
+
+    // Mula Muatkan Aplikasi
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => showTab(btn.dataset.tab));
+      });
+      loadStudent();
+    });
+  </script>
+</body>
+</html>

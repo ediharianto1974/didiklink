@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ujian | ClassTrack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border-radius: 12px; padding: 1rem; }
+    .neon-green { text-shadow: 0 0 8px #0ff, 0 0 16px #0ff; }
+  </style>
+</head>
+<body class="p-4">
+  <div class="max-w-3xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold neon-green">📝 Rekod Ujian</h1>
+      <button onclick="window.history.back()" class="text-sm bg-gray-700 px-3 py-1 rounded">← Kembali</button>
+    </div>
+
+    <!-- Borang Tambah -->
+    <div class="glass mb-6">
+      <h2 class="font-semibold mb-3">Tambah Rekod Ujian</h2>
+      <form id="examForm" class="space-y-3">
+        <input type="hidden" id="studentId" value="">
+        <div>
+          <label class="block text-sm mb-1">Nama Murid</label>
+          <input type="text" id="studentName" readonly class="w-full bg-gray-800 px-2 py-1 rounded">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm mb-1">Subjek</label>
+            <input type="text" id="subject" placeholder="BM, MT, SC..." class="w-full bg-gray-800 px-2 py-1 rounded" required>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Jenis Ujian</label>
+            <input type="text" id="type" placeholder="UH1, PAT..." class="w-full bg-gray-800 px-2 py-1 rounded" required>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm mb-1">Tarikh</label>
+            <input type="date" id="date" class="w-full bg-gray-800 px-2 py-1 rounded" required>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Markah</label>
+            <input type="number" id="score" placeholder="85" class="w-full bg-gray-800 px-2 py-1 rounded" required>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Jumlah Penuh</label>
+          <input type="number" id="total" value="100" class="w-full bg-gray-800 px-2 py-1 rounded" required>
+        </div>
+        <button type="submit" class="w-full bg-green-600 py-2 rounded font-medium">Simpan Rekod</button>
+      </form>
+    </div>
+
+    <!-- Senarai Rekod -->
+    <div>
+      <h2 class="font-semibold mb-3">Rekod Sedia Ada</h2>
+      <div id="examsList" class="space-y-2">
+        <p class="text-gray-400">Tiada rekod ujian.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyDozc46BtKOvWfBMcujmAYO89xA1q36a2E",
+        authDomain: "classmanagement-d0085.firebaseapp.com",
+        projectId: "classmanagement-d0085",
+        storageBucket: "classmanagement-d0085.firebasestorage.app",
+        messagingSenderId: "1088302691324",
+        appId: "1:1088302691324:web:8f983e4090f231fdc93879",
+        measurementId: "G-JCPNXLX0T3"
+      });
+    }
+    const db = firebase.firestore();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentId = urlParams.get('id');
+    const studentName = localStorage.getItem('tempStudentName') || 'Murid';
+
+    document.getElementById('studentId').value = studentId;
+    document.getElementById('studentName').value = studentName;
+    document.getElementById('date').valueAsDate = new Date();
+
+    // Muatkan rekod
+    async function loadExams() {
+      const listEl = document.getElementById('examsList');
+      try {
+        const snapshot = await db.collection('students').doc(studentId).collection('exams').get();
+        if (snapshot.empty) {
+          listEl.innerHTML = '<p class="text-gray-400">Tiada rekod ujian.</p>';
+          return;
+        }
+
+        let html = '';
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          const percentage = ((d.score / d.total) * 100).toFixed(1);
+          html += `
+            <div class="glass p-2 text-sm">
+              <div><span class="font-medium">${d.subject}</span> • ${d.type}</div>
+              <div>${d.date} • ${d.score}/${d.total} (${percentage}%)</div>
+            </div>
+          `;
+        });
+        listEl.innerHTML = html;
+      } catch (err) {
+        listEl.innerHTML = `<p class="text-red-400">Ralat: ${err.message}</p>`;
+      }
+    }
+
+    // Simpan rekod baharu
+    document.getElementById('examForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        subject: document.getElementById('subject').value.trim(),
+        type: document.getElementById('type').value.trim(),
+        date: document.getElementById('date').value,
+        score: parseFloat(document.getElementById('score').value),
+        total: parseFloat(document.getElementById('total').value),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        await db.collection('students').doc(studentId).collection('exams').add(data);
+        alert('Rekod ujian berjaya disimpan!');
+        document.getElementById('examForm').reset();
+        document.getElementById('date').valueAsDate = new Date();
+        loadExams();
+      } catch (err) {
+        alert('Ralat: ' + err.message);
+      }
+    });
+
+    loadExams();
+  </script>
+</body>
+</html>
